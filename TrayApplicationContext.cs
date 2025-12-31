@@ -1,10 +1,14 @@
 using System.Runtime.InteropServices;
 using System.Text;
+using Microsoft.Win32;
 
 namespace AlwaysOnTop;
 
 public class TrayApplicationContext : ApplicationContext
 {
+    private const string AppName = "AlwaysOnTop";
+    private const string StartupRegistryKey = @"SOFTWARE\Microsoft\Windows\CurrentVersion\Run";
+
     private readonly NotifyIcon _trayIcon;
     private readonly HotkeyWindow _hotkeyWindow;
     private readonly HashSet<IntPtr> _topMostWindows = new();
@@ -82,9 +86,25 @@ public class TrayApplicationContext : ApplicationContext
 
         menu.Items.Add(new ToolStripSeparator());
 
+        var startupItem = new ToolStripMenuItem("Start on logon")
+        {
+            Checked = IsStartupEnabled()
+        };
+        startupItem.Click += (s, e) =>
+        {
+            var newState = !IsStartupEnabled();
+            SetStartupEnabled(newState);
+            ShowNotification("Always On Top", newState ? "Will start on logon" : "Will not start on logon");
+        };
+        menu.Items.Add(startupItem);
+
         var exitItem = new ToolStripMenuItem("Exit");
         exitItem.Click += (s, e) => ExitApplication();
         menu.Items.Add(exitItem);
+
+        // Fix for ContextMenuStrip not closing when clicking outside
+        // SetForegroundWindow is required for proper focus handling with NotifyIcon
+        NativeMethods.SetForegroundWindow(_hotkeyWindow.Handle);
 
         // Show the menu at the cursor position
         menu.Show(Cursor.Position);
@@ -176,6 +196,28 @@ public class TrayApplicationContext : ApplicationContext
         }, IntPtr.Zero);
 
         return windows;
+    }
+
+    private static bool IsStartupEnabled()
+    {
+        using var key = Registry.CurrentUser.OpenSubKey(StartupRegistryKey, false);
+        return key?.GetValue(AppName) != null;
+    }
+
+    private static void SetStartupEnabled(bool enabled)
+    {
+        using var key = Registry.CurrentUser.OpenSubKey(StartupRegistryKey, true);
+        if (key == null) return;
+
+        if (enabled)
+        {
+            var exePath = Application.ExecutablePath;
+            key.SetValue(AppName, $"\"{exePath}\"");
+        }
+        else
+        {
+            key.DeleteValue(AppName, false);
+        }
     }
 
     private void ExitApplication()
@@ -303,4 +345,8 @@ internal static class NativeMethods
     [DllImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
     public static extern bool UnregisterHotKey(IntPtr hwnd, int id);
+
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static extern bool SetForegroundWindow(IntPtr hwnd);
 }

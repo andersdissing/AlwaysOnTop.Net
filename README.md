@@ -8,6 +8,7 @@ A lightweight Windows system tray application that lets you pin any window to st
 - **Window list** - Right-click the tray icon to see all open windows
 - **Toggle always-on-top** - Click any window to pin/unpin it
 - **Global hotkey** - Press `Shift+Ctrl+Alt+T` to toggle the active window
+- **Start on logon** - Option to automatically start when Windows logs in
 - **Visual feedback** - Checkmarks indicate pinned windows, balloon notifications confirm changes
 
 ## Requirements
@@ -35,7 +36,8 @@ dotnet publish -c Release -r win-x64 --self-contained false
 2. Right-click the icon to see a list of all open windows
 3. Click a window name to toggle its always-on-top state
 4. Or press `Shift+Ctrl+Alt+T` to pin/unpin the currently focused window
-5. Select "Exit" from the menu to close the application
+5. Toggle "Start on logon" to have the app launch automatically with Windows
+6. Select "Exit" from the menu to close the application
 
 ## License
 
